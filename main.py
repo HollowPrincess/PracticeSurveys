@@ -1,37 +1,16 @@
 import os
 import pandas as pd
-import numpy as np
 
 import fileDownloading
 from dataPreparation import dataPreparation
 from calculations import assessmentsProcessing
 from visualization import assessmentsPage
-
-"""
-!pip install dash-table
-"""
-
-try:
-    import dash
-except ModuleNotFoundError:
-    !pip install dash
-    import dash
-    
-try:
-    import dash_core_components as dcc
-except ModuleNotFoundError:
-    !pip install dash-core-components
-    import dash_core_components as dcc
-    
-try:
-    import dash_html_components as html  
-except ModuleNotFoundError:
-    !pip install dash-html-components
-    import dash_html_components as html  
     
 #settings
 
 isFileNeedToBeDownloaded=False 
+avgErr=0.25 #отклонение среднего значения 
+
 # if programm running from Collaboratory set True 
 # if you need to refresh file set True
 
@@ -51,7 +30,7 @@ df = pd.read_csv('surveys.csv', sep=',', encoding='utf-8',
 
 df=dataPreparation.dataPreparation(df) #if a survey was changed this function need to be fixed
 
-coursePortrait=assessmentsProcessing.assessmentsProcessing(df)
+coursePortrait=assessmentsProcessing.assessmentsProcessing(df,avgErr)
 
 assessmentsPage.assessmentsGraphs(coursePortrait)
 

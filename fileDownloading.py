@@ -8,8 +8,8 @@ def downloadingFromGoogleDrive(docId,isZip):
         try:
             from google_drive_downloader import GoogleDriveDownloader as gdd
         except ModuleNotFoundError:
-            !pip install googledrivedownloader
-            from google_drive_downloader import GoogleDriveDownloader as gdd
+            print('You must install google_drive_downloader: pip install googledrivedownloader')
+            sys.exit
                 
         gdd.download_file_from_google_drive(file_id=docId, 
                                             dest_path='surveys/surveys.csv',

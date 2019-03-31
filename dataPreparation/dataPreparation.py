@@ -70,7 +70,7 @@ def dataPreparation(df):
     #make categories yes/no to 1/0
     boolFields=['согласен рекомендовать?', 'студент?']
     for fieldName in boolFields:
-        df[boolFields] = df[boolFields].map({'Да': 1, 'Нет': 0})
+        df[fieldName] = df[fieldName].map({'Да': 1, 'Нет': 0})
     
     # make sex to isMale:
     df=df.rename(index=str, columns={"пол": "мужчина?"})
