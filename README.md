@@ -14,6 +14,8 @@ pip install dash-html-components
 ```python 
 python main.py
 ```
+3. Открыть в браузере: http://localhost:8050/
+
 ## Вариант 2 (с загрузкой файла из облака Google Drive):
 1. Задать идентификатор файла.
 2. При необходимости установить библиотеку для работы с облаком:
@@ -24,6 +26,7 @@ pip install googledrivedownloader
 ```python 
 python main.py
 ```
+4. Открыть в браузере: http://localhost:8050/
 
 # Как можно обновить файл
 
