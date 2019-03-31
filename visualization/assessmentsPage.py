@@ -1,5 +1,9 @@
 import os
 
+from dash.dependencies import Input, Output
+#from pandas_datareader import data as web
+#from datetime import datetime as dt
+
 """
 !pip install dash-table
 """
@@ -25,11 +29,15 @@ except ModuleNotFoundError:
 
 def assessmentsGraphs(coursePortrait):
     os.chdir('..')
-    app = dash.Dash()
     
+    assessmentOptions=[]
+    for column in coursePortrait.columns:        
+        if column.split(' ')[0]=='средняя':
+            assessmentOptions.append({'label': column, 'value': column})
+            
+    app = dash.Dash()    
     app.layout = html.Div(children=[
-        html.Div(children='Surveys report'),
-        
+        html.Div(children='Отчет по отзывам на курсы'),
         dcc.Graph(
             id='количество отзывов',
             figure={
@@ -43,20 +51,28 @@ def assessmentsGraphs(coursePortrait):
                 'layout': {'title': 'График количества отзывов на каждый курс'}
             }
         ),
-        dcc.Graph(
-            id='оценки',
-            figure={
-                'data': [
-                    {'x':coursePortrait.курс, 
-                     'y':coursePortrait['средняя оценка содержания курса'], 
-                     'type':'bar', 
-                     'name':'Средняя оценка содержания курса'
-                    },
-                ],
-                'layout': {'title': 'График средней оценки содержания курса'}
-            }
-        )
-    ])
+        html.H4('Выберите график:', className='row',
+                            style={'padding-top': '20px'}),
+        dcc.Dropdown(
+            id='my-dropdown',
+            options=assessmentOptions,
+            value=assessmentOptions[0]
+        ),
+
+        dcc.Graph(id='my-graph')
+        
+    ], style={'width': '1000','heigth':'1000'} )
+   
+    @app.callback(Output('my-graph', 'figure'), [Input('my-dropdown', 'value')])
+    def update_graph(selected_dropdown_value):
+        return {
+            'data': [
+                {'x': coursePortrait.курс,
+                'y': coursePortrait[selected_dropdown_value],
+                'type': 'bar', 
+                'name': selected_dropdown_value
+            }],
+            'layout': {'title': selected_dropdown_value}
+        }
     
-    #if __name__ == '__main__':
-    app.run_server(debug=True)
+    app.run_server()
