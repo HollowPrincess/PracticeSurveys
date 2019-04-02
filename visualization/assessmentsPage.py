@@ -1,6 +1,7 @@
 import os
 
 from dash.dependencies import Input, Output
+import plotly.graph_objs as go
 #from pandas_datareader import data as web
 #from datetime import datetime as dt
 
@@ -12,22 +13,22 @@ try:
     import dash
 except ModuleNotFoundError:
     print ('You must install dash: pip install dash')
-    #sys.exit
+    sys.exit
     
 try:
     import dash_core_components as dcc
 except ModuleNotFoundError:
     print ('You must install dash-core-components: pip install dash-core-components')
-    #sys.exit
+    sys.exit
     
 try:
     import dash_html_components as html  
 except ModuleNotFoundError:
     print ('You must install dash-html-components: pip install dash-html-components')
-    #sys.exit
+    sys.exit
     
 
-def assessmentsGraphs(coursePortrait):
+def assessmentsGraphs(surveysCounter,coursePortrait):
     os.chdir('..')
     
     assessmentOptions=[]
@@ -35,9 +36,20 @@ def assessmentsGraphs(coursePortrait):
         if column.split(' ')[0]=='средняя':
             assessmentOptions.append({'label': column, 'value': column})
             
+    sessionColors=[]
+    for courseName in coursePortrait.курс:
+        isSpecial=courseName.lower().find('спец.') #position of the substring or -1
+        isSPBU=courseName.lower().find('спбгу')
+        if isSpecial==-1:
+            sessionColors.append('rgb(0,182,255)') #ordinary session is blue
+        elif isSPBU!=-1:
+            sessionColors.append('rgb(0,255,20)') #special spbu session is green
+        else:
+            sessionColors.append('rgb(254,204,2)') #special session of another universities is orange
+            
     app = dash.Dash()    
     app.layout = html.Div(children=[
-        html.Div(children='Отчет по отзывам на курсы'),
+        html.Div(children='Количество обработанных анкет: '+str(surveysCounter)),
         dcc.Graph(
             id='количество отзывов',
             figure={
@@ -55,8 +67,7 @@ def assessmentsGraphs(coursePortrait):
                             style={'padding-top': '20px'}),
         dcc.Dropdown(
             id='my-dropdown',
-            options=assessmentOptions,
-            value=assessmentOptions[0]
+            options=assessmentOptions
         ),
 
         dcc.Graph(id='my-graph')
@@ -65,14 +76,20 @@ def assessmentsGraphs(coursePortrait):
    
     @app.callback(Output('my-graph', 'figure'), [Input('my-dropdown', 'value')])
     def update_graph(selected_dropdown_value):
-        return {
-            'data': [
-                {'x': coursePortrait.курс,
-                'y': coursePortrait[selected_dropdown_value],
-                'type': 'bar', 
-                'name': selected_dropdown_value
-            }],
-            'layout': {'title': selected_dropdown_value}
-        }
+        if not (selected_dropdown_value is None):
+            graphName=selected_dropdown_value[0].upper()+selected_dropdown_value[1:]
+            res={
+                'data': [
+                    {'x': coursePortrait.курс,
+                     'y': coursePortrait[selected_dropdown_value],
+                     'marker': {'color': sessionColors},
+                     'type': 'bar', 
+                     'name': graphName
+                    }],
+                'layout': {'title': graphName}
+            }
+        else:
+            res={}
+        return res
     
     app.run_server()

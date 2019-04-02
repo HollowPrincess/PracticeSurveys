@@ -28,11 +28,13 @@ df = pd.read_csv('surveys.csv', sep=',', encoding='utf-8',
                  parse_dates=['Отметка времени'], 
                  dayfirst=True)
 
+surveysCounter=df.shape[0]
+
 df=dataPreparation.dataPreparation(df) #if a survey was changed this function need to be fixed
 
 coursePortrait=assessmentsProcessing.assessmentsProcessing(df,avgErr)
 
-assessmentsPage.assessmentsGraphs(coursePortrait)
+assessmentsPage.assessmentsGraphs(surveysCounter,coursePortrait)
 
 
     
