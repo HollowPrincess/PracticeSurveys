@@ -3,12 +3,7 @@ import sys
 
 from dash.dependencies import Input, Output
 import plotly.graph_objs as go
-#from pandas_datareader import data as web
-#from datetime import datetime as dt
 
-"""
-!pip install dash-table
-"""
 
 try:
     import dash
@@ -41,12 +36,7 @@ def getBorderColors(coursePortrait, selected_dropdown_value):
 def assessmentsGraphs(df, surveysCounter,coursePortrait,avgErr):
     os.chdir('..')
     df=df.sort_values(by='курс')
-    """
-    avgAssessmentOptions=[]
-    for column in coursePortrait.columns:        
-        if column.split(' ')[0]=='средняя':
-            avgAssessmentOptions.append({'label': column, 'value': column})
-    """
+
     assessmentOptions=[]
     for column in df.columns:        
         if column.split(' ')[0]=='оценка':
@@ -92,7 +82,7 @@ def assessmentsGraphs(df, surveysCounter,coursePortrait,avgErr):
                 'layout': {'title': 'График количества отзывов на каждый курс'}
             }
         ),
-        html.H4('Выберите график:', className='row',
+        html.H2('Выберите графики:', className='row',
                             style={'padding-top': '20px'}),
         dcc.Dropdown(
             id='my-dropdown',
@@ -100,7 +90,11 @@ def assessmentsGraphs(df, surveysCounter,coursePortrait,avgErr):
         ),
 
         dcc.Graph(id='avggraph'),
-        dcc.Graph(id='allgraph')
+
+        html.Div([html.P('На данном графике изображены средние оценки для каждого курса. Черным обведены нерелевантные данные - объем выборки является недостаточным для рассматриваемой оценки. Зеленым цветом выделены специальные сессии СПбГУ, желтым - другие специальные сессии, синим - все остальные сессии.', className='row', style={'padding-left': '30px','fontSize': 20})]),
+        
+        dcc.Graph(id='allgraph'),
+        html.Div([html.P('На данном графике отмечены все оценки, которые пользователи указывали для конкретного курса. Цветовая гамма точек выбрана по тому же принципу, что и на графике выше.', className='row',style={'padding-left': '30px','fontSize': 20})]),
         
     ], style={'width': '1000','heigth':'1000'} )
    
