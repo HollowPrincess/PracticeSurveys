@@ -10,6 +10,8 @@ from visualization import assessmentsPage
 
 isFileNeedToBeDownloaded=False 
 avgErr=0.25 #отклонение среднего значения 
+minimumSampleSize=10
+
 
 # if programm running from Collaboratory set True 
 # if you need to refresh file set True
@@ -32,9 +34,10 @@ surveysCounter=df.shape[0]
 
 df=dataPreparation.dataPreparation(df) #if a survey was changed this function need to be fixed
 
-coursePortrait=assessmentsProcessing.assessmentsProcessing(df,avgErr)
+minimumSampleSize=minimumSampleSize-1
+coursePortrait=assessmentsProcessing.assessmentsProcessing(df,avgErr,minimumSampleSize)
 
-assessmentsPage.assessmentsGraphs(surveysCounter,coursePortrait)
+assessmentsPage.assessmentsGraphs(surveysCounter,coursePortrait,avgErr)
 
 
     

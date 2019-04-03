@@ -1,4 +1,7 @@
 #if you are running this project from collaboratory, you must download a file with surveys results
+import os
+import sys
+
 def downloadingFromGoogleDrive(docId,isZip):
         if not (os.path.exists(os.getcwd()+'//surveys')
                 or os.path.exists(os.getcwd()+'/surveys')):

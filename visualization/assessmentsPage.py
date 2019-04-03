@@ -1,4 +1,5 @@
 import os
+import sys
 
 from dash.dependencies import Input, Output
 import plotly.graph_objs as go
@@ -27,8 +28,17 @@ except ModuleNotFoundError:
     print ('You must install dash-html-components: pip install dash-html-components')
     sys.exit
     
+def getBorderColors(coursePortrait, selected_dropdown_value):
+    colors=[]
+    for columnName in coursePortrait.columns:
+        if columnName.find('рекомендуемый объем выборки для'+selected_dropdown_value)==-1:
+            colors.append('white')
+        else:
+            colors.append('black')
+    return colors
+    
 
-def assessmentsGraphs(surveysCounter,coursePortrait):
+def assessmentsGraphs(surveysCounter,coursePortrait,avgErr):
     os.chdir('..')
     
     assessmentOptions=[]
@@ -46,6 +56,8 @@ def assessmentsGraphs(surveysCounter,coursePortrait):
             sessionColors.append('rgb(0,255,20)') #special spbu session is green
         else:
             sessionColors.append('rgb(254,204,2)') #special session of another universities is orange
+      
+    
             
     app = dash.Dash()    
     app.layout = html.Div(children=[
@@ -77,12 +89,17 @@ def assessmentsGraphs(surveysCounter,coursePortrait):
     @app.callback(Output('my-graph', 'figure'), [Input('my-dropdown', 'value')])
     def update_graph(selected_dropdown_value):
         if not (selected_dropdown_value is None):
+            assessmentName=selected_dropdown_value[selected_dropdown_value.find('оценка')+len('оценка'):]
+            lineColors=coursePortrait['рекомендуемый объем выборки для средней оценки'+assessmentName+' при отклонении '+str(avgErr)]
             graphName=selected_dropdown_value[0].upper()+selected_dropdown_value[1:]
             res={
                 'data': [
                     {'x': coursePortrait.курс,
                      'y': coursePortrait[selected_dropdown_value],
-                     'marker': {'color': sessionColors},
+                     'marker': {
+                         'color': sessionColors, 
+                         'line': {'width': 1, 'color': lineColors}
+                     },                     
                      'type': 'bar', 
                      'name': graphName
                     }],
@@ -92,4 +109,4 @@ def assessmentsGraphs(surveysCounter,coursePortrait):
             res={}
         return res
     
-    app.run_server()
+    app.run_server(debug=True)
