@@ -1,5 +1,8 @@
 import os
 import sys
+import pandas as pd
+import plotly.plotly as py
+
 
 from dash.dependencies import Input, Output
 import plotly.graph_objs as go
@@ -52,7 +55,8 @@ def assessmentsGraphs(df, surveysCounter,coursePortrait,avgErr):
             sessionColorsInPortrait.append('rgb(0,255,20)') #special spbu session is green
         else:
             sessionColorsInPortrait.append('rgb(254,204,2)') #special session of another universities is orange
-            
+     
+        
     sessionColorsInDF=[]
     for courseName in df.курс:
         isSpecial=courseName.lower().find('спец.') #position of the substring or -1
@@ -63,8 +67,10 @@ def assessmentsGraphs(df, surveysCounter,coursePortrait,avgErr):
             sessionColorsInDF.append('rgb(0,255,20)') #special spbu session is green
         else:
             sessionColorsInDF.append('rgb(254,204,2)') #special session of another universities is orange
-      
-    
+    c=[]        
+    for i in range(42):
+        c.append('red')
+
             
     app = dash.Dash()    
     app.layout = html.Div(children=[
@@ -82,6 +88,7 @@ def assessmentsGraphs(df, surveysCounter,coursePortrait,avgErr):
                 'layout': {'title': 'График количества отзывов на каждый курс'}
             }
         ),
+        
         html.H2('Выберите графики:', className='row',
                             style={'padding-top': '20px'}),
         dcc.Dropdown(
@@ -90,8 +97,9 @@ def assessmentsGraphs(df, surveysCounter,coursePortrait,avgErr):
         ),
 
         dcc.Graph(id='avggraph'),
-
         html.Div([html.P('На данном графике изображены средние оценки для каждого курса. Черным обведены нерелевантные данные - объем выборки является недостаточным для рассматриваемой оценки. Зеленым цветом выделены специальные сессии СПбГУ, желтым - другие специальные сессии, синим - все остальные сессии.', className='row', style={'padding-left': '30px','fontSize': 20})]),
+        
+        dcc.Graph(id='boxgraph'),
         
         dcc.Graph(id='allgraph'),
         html.Div([html.P('На данном графике отмечены все оценки, которые пользователи указывали для конкретного курса. Цветовая гамма точек выбрана по тому же принципу, что и на графике выше.', className='row',style={'padding-left': '30px','fontSize': 20})]),
@@ -122,7 +130,7 @@ def assessmentsGraphs(df, surveysCounter,coursePortrait,avgErr):
         return res
     
     @app.callback(Output('allgraph', 'figure'), [Input('my-dropdown', 'value')])
-    def update_graph(selected_dropdown_value):
+    def update_allgraph(selected_dropdown_value):
         if not (selected_dropdown_value is None):
             assessmentName=selected_dropdown_value[selected_dropdown_value.find('оценка'):]
             graphName=assessmentName[0].upper()+assessmentName[1:]            
@@ -141,6 +149,29 @@ def assessmentsGraphs(df, surveysCounter,coursePortrait,avgErr):
                 ],
                 'layout': {'title': graphName}
             }
+        else:
+            res={}
+        return res
+    
+    @app.callback(Output('boxgraph', 'figure'), [Input('my-dropdown', 'value')])
+    def update_boxgraph(selected_dropdown_value):
+        if not (selected_dropdown_value is None):
+            assessmentName=selected_dropdown_value[selected_dropdown_value.find('оценка')+len('оценка'):]            
+            graphName='Диаграмма размаха '+selected_dropdown_value 
+            res={
+                'data': [
+                    go.Box(
+                        name=coursePortrait.курс[i],
+                        y=df['оценка'+assessmentName],                        
+                        
+                        marker={
+                            'color': sessionColorsInPortrait[i]              
+                        },
+                    ) for i in range(len(sessionColorsInPortrait))
+                ],
+                'layout': {'title': graphName}
+            }
+            
         else:
             res={}
         return res
