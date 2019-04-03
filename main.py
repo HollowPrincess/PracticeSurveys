@@ -37,7 +37,7 @@ df=dataPreparation.dataPreparation(df) #if a survey was changed this function ne
 minimumSampleSize=minimumSampleSize-1
 coursePortrait=assessmentsProcessing.assessmentsProcessing(df,avgErr,minimumSampleSize)
 
-assessmentsPage.assessmentsGraphs(surveysCounter,coursePortrait,avgErr)
+assessmentsPage.assessmentsGraphs(df,surveysCounter,coursePortrait,avgErr)
 
 
     

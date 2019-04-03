@@ -38,24 +38,41 @@ def getBorderColors(coursePortrait, selected_dropdown_value):
     return colors
     
 
-def assessmentsGraphs(surveysCounter,coursePortrait,avgErr):
+def assessmentsGraphs(df, surveysCounter,coursePortrait,avgErr):
     os.chdir('..')
-    
-    assessmentOptions=[]
+    df=df.sort_values(by='курс')
+    """
+    avgAssessmentOptions=[]
     for column in coursePortrait.columns:        
         if column.split(' ')[0]=='средняя':
+            avgAssessmentOptions.append({'label': column, 'value': column})
+    """
+    assessmentOptions=[]
+    for column in df.columns:        
+        if column.split(' ')[0]=='оценка':
             assessmentOptions.append({'label': column, 'value': column})
             
-    sessionColors=[]
+    sessionColorsInPortrait=[]
     for courseName in coursePortrait.курс:
         isSpecial=courseName.lower().find('спец.') #position of the substring or -1
         isSPBU=courseName.lower().find('спбгу')
         if isSpecial==-1:
-            sessionColors.append('rgb(0,182,255)') #ordinary session is blue
+            sessionColorsInPortrait.append('rgb(0,182,255)') #ordinary session is blue
         elif isSPBU!=-1:
-            sessionColors.append('rgb(0,255,20)') #special spbu session is green
+            sessionColorsInPortrait.append('rgb(0,255,20)') #special spbu session is green
         else:
-            sessionColors.append('rgb(254,204,2)') #special session of another universities is orange
+            sessionColorsInPortrait.append('rgb(254,204,2)') #special session of another universities is orange
+            
+    sessionColorsInDF=[]
+    for courseName in df.курс:
+        isSpecial=courseName.lower().find('спец.') #position of the substring or -1
+        isSPBU=courseName.lower().find('спбгу')
+        if isSpecial==-1:
+            sessionColorsInDF.append('rgb(0,182,255)') #ordinary session is blue
+        elif isSPBU!=-1:
+            sessionColorsInDF.append('rgb(0,255,20)') #special spbu session is green
+        else:
+            sessionColorsInDF.append('rgb(254,204,2)') #special session of another universities is orange
       
     
             
@@ -82,27 +99,52 @@ def assessmentsGraphs(surveysCounter,coursePortrait,avgErr):
             options=assessmentOptions
         ),
 
-        dcc.Graph(id='my-graph')
+        dcc.Graph(id='avggraph'),
+        dcc.Graph(id='allgraph')
         
     ], style={'width': '1000','heigth':'1000'} )
    
-    @app.callback(Output('my-graph', 'figure'), [Input('my-dropdown', 'value')])
-    def update_graph(selected_dropdown_value):
+    @app.callback(Output('avggraph', 'figure'), [Input('my-dropdown', 'value')])
+    def update_avggraph(selected_dropdown_value):
         if not (selected_dropdown_value is None):
-            assessmentName=selected_dropdown_value[selected_dropdown_value.find('оценка')+len('оценка'):]
+            assessmentName=selected_dropdown_value[len('оценка'):]
             lineColors=coursePortrait['рекомендуемый объем выборки для средней оценки'+assessmentName+' при отклонении '+str(avgErr)]
-            graphName=selected_dropdown_value[0].upper()+selected_dropdown_value[1:]
+            graphName='Средняя '+selected_dropdown_value          
             res={
                 'data': [
                     {'x': coursePortrait.курс,
-                     'y': coursePortrait[selected_dropdown_value],
+                     'y': coursePortrait['средняя '+selected_dropdown_value],
                      'marker': {
-                         'color': sessionColors, 
+                         'color': sessionColorsInPortrait, 
                          'line': {'width': 1, 'color': lineColors}
                      },                     
                      'type': 'bar', 
                      'name': graphName
                     }],
+                'layout': {'title': graphName}
+            }
+        else:
+            res={}
+        return res
+    
+    @app.callback(Output('allgraph', 'figure'), [Input('my-dropdown', 'value')])
+    def update_graph(selected_dropdown_value):
+        if not (selected_dropdown_value is None):
+            assessmentName=selected_dropdown_value[selected_dropdown_value.find('оценка'):]
+            graphName=assessmentName[0].upper()+assessmentName[1:]            
+            res={
+                'data': [
+                    go.Scatter(
+                        x=df.курс,
+                        y=df[assessmentName],                        
+                        mode='markers',
+                        opacity=1,
+                        marker={
+                            'color': sessionColorsInDF,
+                            'size': 8                            
+                        },
+                    ) 
+                ],
                 'layout': {'title': graphName}
             }
         else:
