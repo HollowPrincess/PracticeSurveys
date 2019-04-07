@@ -52,7 +52,7 @@ def assessmentsGraphs(df, surveysCounter,coursePortrait,avgErr):
         if isSpecial==-1:
             sessionColorsInPortrait.append('rgb(0,182,255)') #ordinary session is blue
         elif isSPBU!=-1:
-            sessionColorsInPortrait.append('rgb(0,255,20)') #special spbu session is green
+            sessionColorsInPortrait.append('rgb(255,15,0)') #special spbu session is red
         else:
             sessionColorsInPortrait.append('rgb(254,204,2)') #special session of another universities is orange
      
@@ -64,18 +64,18 @@ def assessmentsGraphs(df, surveysCounter,coursePortrait,avgErr):
         if isSpecial==-1:
             sessionColorsInDF.append('rgb(0,182,255)') #ordinary session is blue
         elif isSPBU!=-1:
-            sessionColorsInDF.append('rgb(0,255,20)') #special spbu session is green
+            sessionColorsInDF.append('rgb(255,15,0)') #special spbu session is red
         else:
             sessionColorsInDF.append('rgb(254,204,2)') #special session of another universities is orange
-    c=[]        
-    for i in range(42):
-        c.append('red')
 
             
-    app = dash.Dash()    
+    app = dash.Dash()   
+    
     app.layout = html.Div(children=[
         html.Div(children='Количество обработанных анкет: '+str(surveysCounter)),
+
         dcc.Graph(
+            
             id='количество отзывов',
             figure={
                 'data': [
@@ -87,6 +87,7 @@ def assessmentsGraphs(df, surveysCounter,coursePortrait,avgErr):
                 ],
                 'layout': {'title': 'График количества отзывов на каждый курс'}
             }
+            
         ),
         
         html.H2('Выберите графики:', className='row',
@@ -97,15 +98,29 @@ def assessmentsGraphs(df, surveysCounter,coursePortrait,avgErr):
         ),
 
         dcc.Graph(id='avggraph'),
-        html.Div([html.P('На данном графике изображены средние оценки для каждого курса. Черным обведены нерелевантные данные - объем выборки является недостаточным для рассматриваемой оценки. Зеленым цветом выделены специальные сессии СПбГУ, желтым - другие специальные сессии, синим - все остальные сессии.', className='row', style={'padding-left': '30px','fontSize': 20})]),
-        
+        html.Div([html.P('На данном графике изображены средние оценки для каждого курса. Черным обведены нерелевантные данные - объем выборки является недостаточным для рассматриваемой оценки. Красным цветом выделены специальные сессии СПбГУ, желтым - другие специальные сессии, синим - все остальные сессии.', className='row', style={'padding-left': '30px','fontSize': 20})]),
+
         dcc.Graph(id='boxgraph'),
-        
+        html.Div([html.P('На данном графике отмечены все основные статистики данных. Цветовая гамма точек выбрана по тому же принципу, что и на графике выше.', className='row',style={'padding-left': '30px','fontSize': 20})]),
+        html.Div([html.P('Диаграмма размаха ("ящик с усами"), содержит следующую информацию:', className='row',style={'padding-left': '30px','fontSize': 20})]),
+        html.Div([html.Ul([
+            html.Li("max - максимальное значение, встречаемое в данных."),
+            html.Li("q1 - первый квартиль. Значение, которое данные не превышают с вероятностью 25%."),
+            html.Li("median - медиана выборки. Эта статистика показывает, сколько средний человек принесет в данные. Медиана является более устойчивой к выбросам, чем среднее значение."),
+            html.Li("q3 - третий квартиль. Значение, которое данные не превышают с вероятностью 75%."),
+            html.Li("min - минимальное значение, встречаемое в данных."),
+            html.Li("lower fence - нижняя граница \"уса\". Нижняя граница статистически значимой выборки. Всё что ниже - выбросы, которые не имеют значения."),
+            html.Li("upper fence - верхняя граница \"уса\". Верхняя граница статистически значимой выборки. Всё что выше - выбросы, которые не имеют значения."),
+            html.Li("точки-выбросы - точки за пределами \"ящика с усами\". Эти точки являются аномалиями по отношению к остальной выборке."),
+            html.Li("линии-усы показывают степень разброса данных.")
+        ],className='row',style={'padding-left': '30px','fontSize': 20})]),
+        html.Div([html.P('', className='row',style={'padding-left': '30px','fontSize': 20})]),
+
         dcc.Graph(id='allgraph'),
-        html.Div([html.P('На данном графике отмечены все оценки, которые пользователи указывали для конкретного курса. Цветовая гамма точек выбрана по тому же принципу, что и на графике выше.', className='row',style={'padding-left': '30px','fontSize': 20})]),
+        html.Div([html.P('На данном графике отмечены все оценки, которые пользователи указывали для конкретного курса. Цветовая гамма точек выбрана по тому же принципу, что и на графике выше. Чем больше оценок - тем ярче отметка', className='row',style={'padding-left': '30px','fontSize': 20})])
         
     ], style={'width': '1000','heigth':'1000'} )
-   
+    
     @app.callback(Output('avggraph', 'figure'), [Input('my-dropdown', 'value')])
     def update_avggraph(selected_dropdown_value):
         if not (selected_dropdown_value is None):
@@ -142,6 +157,7 @@ def assessmentsGraphs(df, surveysCounter,coursePortrait,avgErr):
                         mode='markers',
                         opacity=1,
                         marker={
+                            'opacity':0.1,
                             'color': sessionColorsInDF,
                             'size': 8                            
                         },
@@ -157,19 +173,29 @@ def assessmentsGraphs(df, surveysCounter,coursePortrait,avgErr):
     def update_boxgraph(selected_dropdown_value):
         if not (selected_dropdown_value is None):
             assessmentName=selected_dropdown_value[selected_dropdown_value.find('оценка')+len('оценка'):]            
-            graphName='Диаграмма размаха '+selected_dropdown_value 
-            res={
-                'data': [
-                    go.Box(
-                        name=coursePortrait.курс[i],
-                        y=df['оценка'+assessmentName],                        
-                        
+            graphName='Диаграмма размаха оценки'+assessmentName            
+            counter=0
+            data=[]
+           
+            for course in coursePortrait.курс:
+                yAxis=df.loc[df['курс'] == course]['оценка'+assessmentName]
+                size=yAxis.shape[0]
+                fillColor=sessionColorsInPortrait[counter]
+
+                data.append(
+                    go.Box( 
+                        name=course,
+                        y=yAxis,
                         marker={
-                            'color': sessionColorsInPortrait[i]              
-                        },
-                    ) for i in range(len(sessionColorsInPortrait))
-                ],
-                'layout': {'title': graphName}
+                            'color':fillColor
+                        }
+                    ) 
+                )
+                counter=counter+1
+
+            res={
+                'data': data,
+                'layout': {'title': graphName,'showlegend':False}
             }
             
         else:
