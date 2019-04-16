@@ -4,6 +4,7 @@ import pandas as pd
 import fileDownloading
 from dataPreparation import dataPreparation
 from calculations import assessmentsProcessing
+from calculations import textProcessing
 from visualization import assessmentsPage
     
 #settings
@@ -37,7 +38,17 @@ df=dataPreparation.dataPreparation(df) #if a survey was changed this function ne
 minimumSampleSize=minimumSampleSize-1
 coursePortrait=assessmentsProcessing.assessmentsProcessing(df,avgErr,minimumSampleSize)
 
-assessmentsPage.assessmentsGraphs(df,surveysCounter,coursePortrait,avgErr)
+textFields=[]
+for column in df.columns:
+    if column.split(' ')[0]=='мнение':
+        textFields.append(column)
+textFields.append('предложения')
+    
+textResults=textProcessing.textProcessing(df,coursePortrait,textFields)
+
+assessmentsPage.assessmentsGraphs(df,surveysCounter,coursePortrait,avgErr,textResults,textFields)
+
+
 
 
     

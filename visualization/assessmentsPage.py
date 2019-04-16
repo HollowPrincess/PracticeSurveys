@@ -2,10 +2,11 @@ import os
 import sys
 import pandas as pd
 import plotly.plotly as py
-
-
+import json
+from textwrap import dedent as d
 from dash.dependencies import Input, Output
 import plotly.graph_objs as go
+import dash_table
 
 
 try:
@@ -26,6 +27,7 @@ except ModuleNotFoundError:
     print ('You must install dash-html-components: pip install dash-html-components')
     sys.exit
     
+
 def getBorderColors(coursePortrait, selected_dropdown_value):
     colors=[]
     for columnName in coursePortrait.columns:
@@ -36,7 +38,7 @@ def getBorderColors(coursePortrait, selected_dropdown_value):
     return colors
     
 
-def assessmentsGraphs(df, surveysCounter,coursePortrait,avgErr):
+def assessmentsGraphs(df, surveysCounter,coursePortrait,avgErr,textResults,textFields):
     os.chdir('..')
     df=df.sort_values(by='курс')
 
@@ -81,6 +83,9 @@ def assessmentsGraphs(df, surveysCounter,coursePortrait,avgErr):
                 'data': [
                     {'x':coursePortrait.курс, 
                      'y':coursePortrait['количество отзывов на курс'], 
+                     'marker': {
+                         'color': sessionColorsInPortrait
+                     },    
                      'type':'bar', 
                      'name':'Количество отзывов'
                     },
@@ -89,6 +94,14 @@ def assessmentsGraphs(df, surveysCounter,coursePortrait,avgErr):
             }
             
         ),
+        
+        html.Div([
+            html.H2('Информация по текстовым полям', className='row',style={'padding-top': '20px'}),
+            html.P('Нажмите на столбец на графике выше, чтобы получить информацию по текстовым полям.', 
+                   className='row', 
+                   style={'padding-left': '30px','fontSize': 20}),
+            html.Pre(id='click-data'),
+        ], className='three columns'),
         
         html.H2('Выберите графики:', className='row',
                             style={'padding-top': '20px'}),
@@ -120,6 +133,42 @@ def assessmentsGraphs(df, surveysCounter,coursePortrait,avgErr):
         html.Div([html.P('На данном графике отмечены все оценки, которые пользователи указывали для конкретного курса. Цветовая гамма точек выбрана по тому же принципу, что и на графике выше. Чем больше оценок - тем ярче отметка', className='row',style={'padding-left': '30px','fontSize': 20})])
         
     ], style={'width': '1000','heigth':'1000'} )
+    
+    @app.callback(
+    Output('click-data', 'children'),
+        [Input('количество отзывов', 'clickData')])
+    def display_click_data(clickData):
+        if clickData:
+            course=clickData['points'][0]['x']
+            resultData=textResults.loc[textResults['курс'] == course]
+            children=[
+                html.P('Тематика отзывов:', 
+                   className='row', 
+                   style={'padding-left': '30px','font-family':'Times New Roman','fontSize': 20}),
+                
+                dash_table.DataTable(
+                    id='table',
+                    columns=[{"name": i, "id": i} for i in resultData.columns],
+                    style_cell={'minWidth': '150px','textAlign': 'left'},
+                    data=resultData.to_dict("rows"),
+                    n_fixed_rows=1,
+                    style_table={
+                        #'maxWidth':'1000',
+                        #'overflowX': 'scroll',
+                        'maxHeight': '300',
+                        'overflowY': 'scroll'
+                    },
+                )         
+            ]
+            for textField in textFields:
+                children.append(
+                    html.P(textField[0].upper()+textField[1:]+':', 
+                           className='row', 
+                           style={'padding-left': '30px','font-family':'Times New Roman', 'fontSize': 20})  
+                
+                )
+            return html.Div(children=children)
+
     
     @app.callback(Output('avggraph', 'figure'), [Input('my-dropdown', 'value')])
     def update_avggraph(selected_dropdown_value):
