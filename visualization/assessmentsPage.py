@@ -1,8 +1,9 @@
 import os
 import sys
 import pandas as pd
+import numpy as np
 import plotly.plotly as py
-import json
+import dash_daq as daq
 from textwrap import dedent as d
 from dash.dependencies import Input, Output
 import plotly.graph_objs as go
@@ -38,32 +39,71 @@ def getBorderColors(coursePortrait, selected_dropdown_value):
     return colors
 
 
+def get_color(courseName):
+    isSpecial=courseName.lower().find('спец.') #position of the substring or -1
+    isSPBU=courseName.lower().find('спбгу')
+    if isSpecial==-1:
+        color='rgb(0,182,255)' #ordinary session is blue
+    elif isSPBU!=-1:
+        color='rgb(255,15,0)' #special spbu session is red 
+    else:
+        color='rgb(254,204,2)' #special session of another universities is orange
+    return color
+
+def get_courses_names_and_colors(selected_radio_value,df):
+    courses_colors=[]
+    courses_names=[]
+    
+    if selected_radio_value=='all':
+        courses_names=df.курс.unique()
+        for courseName in df.курс:
+            courses_colors.append(get_color(courseName))            
+            
+    elif selected_radio_value=='special':
+        for courseName in df.курс:   
+            isSpecial=courseName.lower().find('спец.') #position of the substring or -1
+            if isSpecial!=-1:
+                courses_colors.append(get_color(courseName))
+                courses_names.append(courseName)
+
+    elif selected_radio_value=='with_spec_spbu':  
+        for courseName in df.курс.unique():            
+            isSPBU=courseName.lower().find('спбгу')
+            if isSPBU!=-1:
+                course=courseName.lower().split(' (спец.')[0]
+                for courseNameInAll in df.курс:
+                    isCurrentCourse=courseNameInAll.lower().find(course)
+                    if isCurrentCourse!=-1:
+                        courses_colors.append(get_color(courseNameInAll))
+                        courses_names.append(courseNameInAll)
+        
+                
+    elif selected_radio_value=='spec_spbu':
+        for courseName in df.курс:
+            isSPBU=courseName.lower().find('спбгу')
+            if isSPBU!=-1:
+                courses_names.append(courseName)
+                courses_colors.append('rgb(255,15,0)')                
+                
+    courses_names=np.unique(courses_names)        
+    return courses_names,courses_colors
 
 def assessmentsGraphs(df, surveysCounter,coursePortrait,avgErr,textResults,textFields):
     os.chdir('..')
     df=df.sort_values(by='курс')
+    
     columns=textFields.copy()
     columns.append('курс')
     allTextsData=df[columns]
     
-    
     assessmentOptions=[]
     for column in df.columns:     
         if column.split(' ')[0]=='оценка':
-            assessmentOptions.append({'label': column, 'value': column})   
-            
-            
-    sessionColorsInPortrait=[]
+            assessmentOptions.append({'label': column, 'value': column})       
+    
+    sessionColorsInPortrait=[]    
     for courseName in coursePortrait.курс:
-        isSpecial=courseName.lower().find('спец.') #position of the substring or -1
-        isSPBU=courseName.lower().find('спбгу')
-        if isSpecial==-1:
-            sessionColorsInPortrait.append('rgb(0,182,255)') #ordinary session is blue
-        elif isSPBU!=-1:
-            sessionColorsInPortrait.append('rgb(255,15,0)') #special spbu session is red
-        else:
-            sessionColorsInPortrait.append('rgb(254,204,2)') #special session of another universities is orange
-            
+        sessionColorsInPortrait=get_color(courseName)
             
     sessionColorsInDF=[]
     for courseName in df.курс:
@@ -81,24 +121,20 @@ def assessmentsGraphs(df, surveysCounter,coursePortrait,avgErr,textResults,textF
     app.layout = html.Div(children=[
         html.Div(children='Количество обработанных анкет: '+str(surveysCounter)),
         
-
-        dcc.Graph(            
-            id='количество отзывов',
-            figure={
-                'data': [
-                    {'x':coursePortrait.курс, 
-                     'y':coursePortrait['количество отзывов на курс'], 
-                     'marker': {
-                         'color': sessionColorsInPortrait
-                     },    
-                     'type':'bar', 
-                     'name':'Количество отзывов'
-                    },
-                ],
-                'layout': {'title': 'График количества отзывов на каждый курс'}
-            }
-            
+        dcc.RadioItems(
+            id='courses_radio',
+            options=[
+                {'label': 'Показать информацию по всем курсам', 'value': 'all'},
+                {'label': 'Показать только спец.сессии', 'value': 'special'},
+                {'label': 'Показать все курсы, у которых есть спец.сессия СПбГУ', 'value': 'with_spec_spbu'},
+                {'label': 'Показать только спец.сессии СПбГУ', 'value': 'spec_spbu'}           
+            ],
+            labelStyle={'display': 'block'},
+            value='all'
         ),
+        
+
+        dcc.Graph(id='количество отзывов'),
         
         html.Div([
             html.H2('Информация по текстовым полям', className='row',style={'padding-top': '20px'}),
@@ -115,10 +151,16 @@ def assessmentsGraphs(df, surveysCounter,coursePortrait,avgErr,textResults,textF
             options=assessmentOptions
         ),
 
+       
+        
         dcc.Graph(id='avggraph'),
+        
         html.Div([html.P('На данном графике изображены средние оценки для каждого курса. Черным обведены нерелевантные данные - объем выборки является недостаточным для рассматриваемой оценки. Красным цветом выделены специальные сессии СПбГУ, желтым - другие специальные сессии, синим - все остальные сессии.', className='row', style={'padding-left': '30px','fontSize': 20})]),
+         
+        
 
         dcc.Graph(id='boxgraph'),
+       
         html.Div([html.P('На данном графике отмечены все основные статистики данных. Цветовая гамма точек выбрана по тому же принципу, что и на графике выше.', className='row',style={'padding-left': '30px','fontSize': 20})]),
         html.Div([html.P('Диаграмма размаха ("ящик с усами"), содержит следующую информацию:', className='row',style={'padding-left': '30px','fontSize': 20})]),
         html.Div([html.Ul([
@@ -133,15 +175,35 @@ def assessmentsGraphs(df, surveysCounter,coursePortrait,avgErr,textResults,textF
             html.Li("линии-усы показывают степень разброса данных.")
         ],className='row',style={'padding-left': '30px','fontSize': 20})]),
         html.Div([html.P('', className='row',style={'padding-left': '30px','fontSize': 20})]),
-
+        
+        
         dcc.Graph(id='allgraph'),
+       
         html.Div([html.P('На данном графике отмечены все оценки, которые пользователи указывали для конкретного курса. Цветовая гамма точек выбрана по тому же принципу, что и на графике выше. Чем больше оценок - тем ярче отметка', className='row',style={'padding-left': '30px','fontSize': 20})])
         
     ], style={'width': '1000','heigth':'1000'} )
     
-    @app.callback(
-    Output('click-data', 'children'),
-        [Input('количество отзывов', 'clickData')])
+    
+    @app.callback(Output('количество отзывов', 'figure'), [Input('courses_radio', 'value')])
+    def update_maingraph(selected_radio_value):
+        courses_names,courses_colors=get_courses_names_and_colors(selected_radio_value,coursePortrait) 
+        res={
+            'data': [
+                {'x':coursePortrait.loc[coursePortrait['курс'].isin(courses_names)]['курс'], 
+                 'y':coursePortrait.loc[coursePortrait['курс'].isin(courses_names)]['количество отзывов на курс'], 
+                 'marker': {
+                     'color': courses_colors
+                 },    
+                 'type':'bar',
+                 'name':[courses_names],                 
+                },
+            ],
+            'layout': {'title': 'График количества отзывов на каждый курс'}
+        }
+
+        return res
+    
+    @app.callback(Output('click-data', 'children'),[Input('количество отзывов', 'clickData')])
     def display_click_data(clickData):
         if clickData:
             course=clickData['points'][0]['x']
@@ -209,18 +271,24 @@ def assessmentsGraphs(df, surveysCounter,coursePortrait,avgErr,textResults,textF
             return html.Div(children=children)
 
     
-    @app.callback(Output('avggraph', 'figure'), [Input('my-dropdown', 'value')])
-    def update_avggraph(selected_dropdown_value):
+    @app.callback(Output('avggraph', 'figure'), [Input('my-dropdown', 'value'),
+                                                 Input('courses_radio', 'value')])
+    def update_avggraph(selected_dropdown_value,selected_radio_value):
         if not (selected_dropdown_value is None):
+            courses_names,courses_colors=get_courses_names_and_colors(selected_radio_value,coursePortrait)
+            
             assessmentName=selected_dropdown_value[len('оценка'):]
-            lineColors=coursePortrait['рекомендуемый объем выборки для средней оценки'+assessmentName+' при отклонении '+str(avgErr)]
+            lineColors=coursePortrait.loc[coursePortrait['курс'].isin(courses_names)][
+                'рекомендуемый объем выборки для средней оценки'+assessmentName+' при отклонении '+str(avgErr)
+            ]
+
             graphName='Средняя '+selected_dropdown_value          
             res={
                 'data': [
-                    {'x': coursePortrait.курс,
-                     'y': coursePortrait['средняя '+selected_dropdown_value],
+                    {'x': coursePortrait.loc[coursePortrait['курс'].isin(courses_names)]['курс'],
+                     'y': coursePortrait.loc[coursePortrait['курс'].isin(courses_names)]['средняя '+selected_dropdown_value],
                      'marker': {
-                         'color': sessionColorsInPortrait, 
+                         'color': courses_colors, 
                          'line': {'width': 1, 'color': lineColors}
                      },                     
                      'type': 'bar', 
@@ -232,43 +300,21 @@ def assessmentsGraphs(df, surveysCounter,coursePortrait,avgErr,textResults,textF
             res={}
         return res
     
-    @app.callback(Output('allgraph', 'figure'), [Input('my-dropdown', 'value')])
-    def update_allgraph(selected_dropdown_value):
+    @app.callback(Output('boxgraph', 'figure'), [Input('my-dropdown', 'value'),
+                                                 Input('courses_radio', 'value')])
+    def update_boxgraph(selected_dropdown_value,selected_radio_value):
         if not (selected_dropdown_value is None):
-            assessmentName=selected_dropdown_value[selected_dropdown_value.find('оценка'):]
-            graphName=assessmentName[0].upper()+assessmentName[1:]            
-            res={
-                'data': [
-                    go.Scatter(
-                        x=df.курс,
-                        y=df[assessmentName],                        
-                        mode='markers',
-                        opacity=1,
-                        marker={
-                            'opacity':0.1,
-                            'color': sessionColorsInDF,
-                            'size': 8                            
-                        },
-                    ) 
-                ],
-                'layout': {'title': graphName}
-            }
-        else:
-            res={}
-        return res
-    
-    @app.callback(Output('boxgraph', 'figure'), [Input('my-dropdown', 'value')])
-    def update_boxgraph(selected_dropdown_value):
-        if not (selected_dropdown_value is None):
+            courses_names,courses_colors=get_courses_names_and_colors(selected_radio_value,coursePortrait)
+            
             assessmentName=selected_dropdown_value[selected_dropdown_value.find('оценка')+len('оценка'):]            
             graphName='Диаграмма размаха оценки'+assessmentName            
             counter=0
             data=[]
            
-            for course in coursePortrait.курс:
+            for course in courses_names:
                 yAxis=df.loc[df['курс'] == course]['оценка'+assessmentName]
                 size=yAxis.shape[0]
-                fillColor=sessionColorsInPortrait[counter]
+                fillColor=courses_colors[counter]
 
                 data.append(
                     go.Box( 
@@ -283,11 +329,43 @@ def assessmentsGraphs(df, surveysCounter,coursePortrait,avgErr,textResults,textF
 
             res={
                 'data': data,
-                'layout': {'title': graphName,'showlegend':False}
+                'layout': {'title': graphName, 'showlegend':False}
             }
             
         else:
             res={}
         return res
     
-    app.run_server(debug=True)
+    
+    @app.callback(Output('allgraph', 'figure'), [Input('my-dropdown', 'value'),
+                                                 Input('courses_radio', 'value')])
+    def update_allgraph(selected_dropdown_value,selected_radio_value):
+        if not (selected_dropdown_value is None):
+            courses_names,courses_colors=get_courses_names_and_colors(selected_radio_value,df)
+            
+            assessmentName=selected_dropdown_value[selected_dropdown_value.find('оценка'):]
+            graphName=assessmentName[0].upper()+assessmentName[1:]          
+            
+            res={
+                'data': [
+                    go.Scatter(
+                        x=df.loc[df['курс'].isin(courses_names)]['курс'],
+                        y=df.loc[df['курс'].isin(courses_names)][assessmentName],                        
+                        mode='markers',
+                        opacity=1,
+                        marker={
+                            'opacity':0.1,
+                            'color': courses_colors,
+                            'size': 8                            
+                        },
+                    ) 
+                ],
+                'layout': {'title': graphName}
+            }
+        else:
+            res={}
+        return res
+                
+                 
+
+    app.run_server(debug=True)   
