@@ -1,5 +1,7 @@
 import os
+import sys
 import pandas as pd
+import zipfile
 
 import fileDownloading
 from dataPreparation import dataPreparation
@@ -24,10 +26,21 @@ if (isFileNeedToBeDownloaded or (not (os.path.exists(os.getcwd()+'surveys/survey
     docId='none' # set docId in Google drive (part of the link)
     
     fileDownloading.downloadingFromGoogleDrive(docId,isZip)
+    print('You must get file with surveys results to \'surveys\' folder')
 else:
     os.chdir('surveys')
     
-df = pd.read_csv('surveys.csv', sep=',', encoding='utf-8', 
+filename=-1
+files=os.listdir()
+for file in files:
+    if str(file).find('.csv')!=-1:
+        filename=file
+        break
+if filename==-1:
+    print('You must get file with surveys results to \'surveys\' folder')
+    sys.exit()
+    
+df = pd.read_csv(filename, sep=',', encoding='utf-8', 
                  parse_dates=['Отметка времени'], 
                  dayfirst=True)
 
