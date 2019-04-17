@@ -36,16 +36,22 @@ def getBorderColors(coursePortrait, selected_dropdown_value):
         else:
             colors.append('black')
     return colors
-    
+
+
 
 def assessmentsGraphs(df, surveysCounter,coursePortrait,avgErr,textResults,textFields):
     os.chdir('..')
     df=df.sort_values(by='курс')
-
+    columns=textFields.copy()
+    columns.append('курс')
+    allTextsData=df[columns]
+    
+    
     assessmentOptions=[]
-    for column in df.columns:        
+    for column in df.columns:     
         if column.split(' ')[0]=='оценка':
-            assessmentOptions.append({'label': column, 'value': column})
+            assessmentOptions.append({'label': column, 'value': column})   
+            
             
     sessionColorsInPortrait=[]
     for courseName in coursePortrait.курс:
@@ -57,8 +63,8 @@ def assessmentsGraphs(df, surveysCounter,coursePortrait,avgErr,textResults,textF
             sessionColorsInPortrait.append('rgb(255,15,0)') #special spbu session is red
         else:
             sessionColorsInPortrait.append('rgb(254,204,2)') #special session of another universities is orange
-     
-        
+            
+            
     sessionColorsInDF=[]
     for courseName in df.курс:
         isSpecial=courseName.lower().find('спец.') #position of the substring or -1
@@ -69,15 +75,14 @@ def assessmentsGraphs(df, surveysCounter,coursePortrait,avgErr,textResults,textF
             sessionColorsInDF.append('rgb(255,15,0)') #special spbu session is red
         else:
             sessionColorsInDF.append('rgb(254,204,2)') #special session of another universities is orange
-
             
     app = dash.Dash()   
     
     app.layout = html.Div(children=[
         html.Div(children='Количество обработанных анкет: '+str(surveysCounter)),
+        
 
-        dcc.Graph(
-            
+        dcc.Graph(            
             id='количество отзывов',
             figure={
                 'data': [
@@ -140,33 +145,67 @@ def assessmentsGraphs(df, surveysCounter,coursePortrait,avgErr,textResults,textF
     def display_click_data(clickData):
         if clickData:
             course=clickData['points'][0]['x']
-            resultData=textResults.loc[textResults['курс'] == course]
-            children=[
-                html.P('Тематика отзывов:', 
-                   className='row', 
-                   style={'padding-left': '30px','font-family':'Times New Roman','fontSize': 20}),
-                
-                dash_table.DataTable(
-                    id='table',
-                    columns=[{"name": i, "id": i} for i in resultData.columns],
-                    style_cell={'minWidth': '150px','textAlign': 'left'},
-                    data=resultData.to_dict("rows"),
-                    n_fixed_rows=1,
-                    style_table={
-                        #'maxWidth':'1000',
-                        #'overflowX': 'scroll',
-                        'maxHeight': '300',
-                        'overflowY': 'scroll'
-                    },
-                )         
-            ]
-            for textField in textFields:
+            resultThemesData=textResults.loc[textResults['курс'] == course]
+            textsData=allTextsData.loc[allTextsData['курс']==course]
+            
+            children=[]
+            if textsData.shape[0]>3:
                 children.append(
-                    html.P(textField[0].upper()+textField[1:]+':', 
+                    html.P('Тематика отзывов по курсу: '+course, 
                            className='row', 
-                           style={'padding-left': '30px','font-family':'Times New Roman', 'fontSize': 20})  
-                
+                           style={'padding-left': '30px','font-family':'Times New Roman','fontSize': 20})
                 )
+                
+                columns=resultThemesData.columns.values.tolist()
+                columns.remove('курс')
+                
+                children.append(
+                    dash_table.DataTable(
+                        id='table',
+                        columns=[{"name": i, "id": i} for i in columns],
+                        style_cell={'minWidth': '150px','textAlign': 'left'},
+                        data=resultThemesData.to_dict("rows"),
+                        n_fixed_rows=1,
+                        style_table={
+                            #'maxWidth':'1000',
+                            #'overflowX': 'scroll',
+                            'maxHeight': '300',
+                            'overflowY': 'scroll'
+                        },
+                    ) 
+                )
+                
+            if  textsData.shape[0]>0:    
+                for textField in textFields:
+                    
+                    currentTextData=pd.DataFrame(textsData[textField]).dropna()                   
+                    
+                    children.append(
+                        html.P(textField[0].upper()+textField[1:]+': \n Количество отзывов:'+str(currentTextData.shape[0]), 
+                               className='row', 
+                               style={'padding-left': '30px','font-family':'Times New Roman', 'fontSize': 20})
+                    ) 
+                    
+                    children.append(
+                        dash_table.DataTable(
+                            id=textField,
+                            columns=[{"name": i, "id": i} for i in currentTextData.columns],
+                            style_cell={'minWidth': '150px','textAlign': 'left'},
+                            data=currentTextData.to_dict("rows"),
+                            n_fixed_rows=1,
+                            style_table={
+                                'maxHeight': '300',
+                                'overflowY': 'scroll'
+                            },
+                        )
+                    )
+            else:                    
+                children.append(
+                        html.P('По данному курсу отзывов нет', 
+                               className='row', 
+                               style={'padding-left': '30px','font-family':'Times New Roman', 'fontSize': 20})
+                )
+                
             return html.Div(children=children)
 
     

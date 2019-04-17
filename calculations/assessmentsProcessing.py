@@ -15,11 +15,12 @@ def countAvgAndSizeForAssessment(assessmentName,df,avgErr,minimumSampleSize):
     newColInPortrait.columns=newColInPortrait.columns.droplevel(level=0)
     return newColInPortrait
 
-def assessmentsProcessing(df,avgErr,minimumSampleSize):
+def assessmentsProcessing(df,avgErr,minimumSampleSize):    
     coursePortrait=df.groupby(['курс']).agg({'оценка содержания курса':[np.size]})
     coursePortrait=coursePortrait.rename(index=str, 
                                          columns={'size':'количество отзывов на курс'})
     coursePortrait.columns=coursePortrait.columns.droplevel(level=0)
+    
     
     for column in df.columns:
         if column.split(' ')[0]=='оценка':
@@ -30,10 +31,11 @@ def assessmentsProcessing(df,avgErr,minimumSampleSize):
             
     coursePortrait=coursePortrait.reset_index()
     
+    coursePortraitCopy=coursePortrait['количество отзывов на курс'].copy(deep=True)
     coursePortrait['количество отзывов на курс']=coursePortrait['количество отзывов на курс'].where(30<coursePortrait['количество отзывов на курс'], coursePortrait['количество отзывов на курс']-1)
     for columnName in coursePortrait.columns:
         if columnName.find('рекомендуемый объем выборки для средней оценки')!=-1:
             coursePortrait[columnName]=coursePortrait[columnName].where(coursePortrait[columnName]<=coursePortrait['количество отзывов на курс'], 'black')
             coursePortrait[columnName]=coursePortrait[columnName].where(coursePortrait[columnName]=='black', 'white')
-    
+    coursePortrait['количество отзывов на курс']=coursePortraitCopy
     return coursePortrait
