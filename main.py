@@ -12,16 +12,14 @@ from visualization import assessmentsPage
 #settings
 
 isFileNeedToBeDownloaded=False 
-avgErr=0.25 #отклонение среднего значения 
+avgErr=0.2 #отклонение среднего значения 
 minimumSampleSize=10
 
 
 # if programm running from Collaboratory set True 
 # if you need to refresh file set True
 
-if (isFileNeedToBeDownloaded or (not (os.path.exists(os.getcwd()+'surveys/surveys.csv') 
-            or os.path.exists(os.getcwd()+'//surveys//surveys.csv')))):
-    
+if isFileNeedToBeDownloaded:    
     isZip=False # if file with surveys has zip format set True
     docId='none' # set docId in Google drive (part of the link)
     
@@ -39,10 +37,9 @@ for file in files:
 if filename==-1:
     print('You must get file with surveys results to \'surveys\' folder')
     sys.exit()
-    
-df = pd.read_csv(filename, sep=',', encoding='utf-8', 
-                 parse_dates=['Отметка времени'], 
-                 dayfirst=True)
+
+path=str(os.getcwd())+'\\'+filename
+df = pd.read_csv(path, sep=',', encoding='utf-8')
 
 surveysCounter=df.shape[0]
 
